@@ -16,10 +16,10 @@ def GetMinorCertificateRequirements(filename):
         readline = i.split(",")
         j = 0
         while j != len(readline):
-            if readline[j] == '""':
+            if readline[j] == '""' or len(readline[j]) == 0:
                 del readline[j]
             else:
-                readline[j] = readline[j][1:-1]
+                readline[j] = readline[j]
                 j += 1
         d2Array.append(readline)
     return d2Array
@@ -171,7 +171,7 @@ for minor in d2Array:
                         #The way the code is set up, the first time a duplicate course is found, it is not recognized as duplicate, and is therefore not expunged from the requirements section.
                         #This would mean that that course can be "double counted".
                         #As such, this block of code below manually goes back and expunges that first duplicate course from the requirement it came from.
-                        #This code shows up a total of three times, once here and two more times in the hard coded sections of the second case.  All of them are more or less identical, and as such it might be best to convert this block of code into a function in the future.
+                        #This code shows up a total of twice, once here and once in the second case.  Both of them are more or less identical, and as such it might be best to convert this block of code into a function in the future.
                         backchange = newminor[int(ChoiceCourses[c[0]])].split(".")
                         split_backchange = backchange[1].split("*")
                         j = 0
@@ -196,80 +196,158 @@ for minor in d2Array:
                     else:
                         DuplicateCourses[c[0]] = DuplicateCourses[c[0]] + "," + str(requirementiterator)
                         del requirementsplit[iterator]
-                #This block of code deals with the second case.  As at the time I was unable to find an easy method to store the information needed for DuplicateCourses, the code for the first half and second half are hardcoded but mostly the same, the only difference being which half is being used where.
-                #This, again, may need to be changed.
-                elif len(c) == 2:
+                #This block of code deals with the second case.
+                else:
+                    ccopy = copy.deepcopy(c)
                     #print(c[0])
                     #print(c[1])
                     AppendChoice1 = False
                     AppendChoice2 = False
-                    if c[0] not in ChoiceCourses.keys():
-                        ChoiceCourses[c[0]] = str(requirementiterator)
-                        AppendChoice1 = True
-                    elif c[0] not in DuplicateCourses.keys():
-                        DuplicateCourses[c[0]] = ChoiceCourses[c[0]] + "," + str(requirementiterator) + "*" + c[1]
-
-                        #This is the second time the requirement rewriting codeblock shows up.
-                        backchange = newminor[int(ChoiceCourses[c[0]])].split(".")
-                        split_backchange = backchange[1].split("*")
-                        j = 0
-                        while j < len(split_backchange):
-                            split_j = split_backchange[j].split("/")
-                            i = 0
-                            while i < len(split_j):
-                                if split_j[i] == c[0]:
-                                    del split_j[i]
+                    jterator = 0
+                    print(c)
+                    print(ccopy)
+                    while jterator < len(c):
+                        
+                        if c[jterator] not in ChoiceCourses.keys():
+                            ChoiceCourses[c[jterator]] = str(requirementiterator)
+                        elif c[jterator] not in DuplicateCourses.keys():
+                            #This block of code deals with any courses that are both duplicates and have multiple courses eligible for fufilling sub-requirements.
+                            #This block of code shows up twice, once here and once in the block of code that 
+                            DuplicateCourses[c[jterator]] = ChoiceCourses[c[jterator]] + "," + str(requirementiterator)
+                            dupec = []
+                            for i in ccopy:
+                                print(i)
+                                if i == c[jterator]:
+                                    continue
+                                if i in DuplicateCourses.keys():
+                                    dupec.append(i)
                                 else:
-                                    i += 1
-                            if len(split_j) > 0:
-                                split_backchange[j] = "/".join(split_j)
-                            else:
-                                del split_backchange[j]
-                                iterator -= 1
-                            j += 1
-                        newminor[int(ChoiceCourses[c[0]])] = backchange[0] + "." + "*".join(split_backchange)
-                        #print(newminor[int(ChoiceCourses[c[0]])])
-                    else:
-                        DuplicateCourses[c[0]] = DuplicateCourses[c[0]] + "," + str(requirementiterator) + "*" + c[1]
+                                    DuplicateCourses[c[jterator]] += "*" + i
+                            #This deals with the relevant duplicate courses, and adjusts their split so that duplicate courses (that they now know are duplicate but did not at the time of initialization) is correctly placed.
+                            if len(dupec) > 0:
+                                DuplicateCourses[c[jterator]] += "/"
+                                for i in range(0,len(dupec)):
+                                    DuplicateCourses[c[jterator]] += idupec[i]
+                                    if i != len(dupec) - 1:
+                                        DuplicateCourses[c[jterator]] += "*"
+                                    duperesult = DuplicateCourses[idupec[i]].split(",")
+                                    dupersplits = duperestult[-1].split("/")
+                                    dupersplits[1] += "*" + c[jterator]
+                                    dupersplita = duplersplits[0].split("*")
+                                    kterator = 0
+                                    while kterator < len(dupersplita):
+                                        if dupersplita[kterator] == c[jterator]:
+                                            del dupersplita[kterator]
+                                        else:
+                                            kterator += 1
+                                    dupersplits[0] = "*".join(dupersplita)
+                                    duperesult[-1] = "/".join(dupersplits)
+                                    DuplicateCourses[idupec[i]] = ",".join(duperesult)
+                                        
 
-                    if c[1] not in ChoiceCourses.keys():
-                        ChoiceCourses[c[1]] = str(requirementiterator)
-                        AppendChoice2 = True
-                    elif c[1] not in DuplicateCourses.keys():
-                        DuplicateCourses[c[1]] = ChoiceCourses[c[1]] + "," + str(requirementiterator) + "*" + c[0]
-
-                        #This is the third time the requirement rewriting codeblock shows up.
-                        backchange = newminor[int(ChoiceCourses[c[1]])].split(".")
-                        split_backchange = backchange[1].split("*")
-                        j = 0
-                        while j < len(split_backchange):
-                            split_j = split_backchange[j].split("/")
-                            i = 0
-                            while i < len(split_j):
-                                if split_j[i] == c[1]:
-                                    del split_j[i]
+                            #This is the second time the requirement rewriting codeblock shows up.
+                            backchange = newminor[int(ChoiceCourses[c[jterator]])].split(".")
+                            split_backchange = backchange[1].split("*")
+                            print(backchange)
+                            j = 0
+                            while j < len(split_backchange):
+                                split_j = split_backchange[j].split("/")
+                                i = 0
+                                while i < len(split_j):
+                                    if split_j[i] == c[jterator]:
+                                        del split_j[i]
+                                        dupec = DuplicateCourses[c[jterator]].split(",")
+                                        dupec[0] = dupec[0] + "*" + "*".join(split_j)
+                                        DuplicateCourses[c[jterator]] = ",".join(dupec)
+                                    else:
+                                        i += 1
+                                if len(split_j) > 0:
+                                    split_backchange[j] = "/".join(split_j)
                                 else:
-                                    i += 1
-                            if len(split_j) > 0:
-                                split_backchange[j] = "/".join(split_j)
-                            else:
-                                del split_backchange[j]
-                                iterator -= 1
-                            j += 1
-                        newminor[int(ChoiceCourses[c[1]])] = backchange[0] + "." + "*".join(split_backchange)
-                        #print(newminor[int(ChoiceCourses[c[1]])])
-                    else:
-                        DuplicateCourses[c[1]] = DuplicateCourses[c[1]] + "," + str(requirementiterator) + "*" + c[0]
+                                    del split_backchange[j]
+                                    iterator -= 1
+                                j += 1
+                            newminor[int(ChoiceCourses[c[jterator]])] = backchange[0] + "." + "*".join(split_backchange)
+                            del c[jterator]
+                            jterator -= 1
+                            #print(newminor[int(ChoiceCourses[c[0]])])
+                        else:
+                            DuplicateCourses[c[jterator]] = DuplicateCourses[c[jterator]] + "," + str(requirementiterator)
+                            for i in ccopy:
+                                dupec = []
+                                if i == c[jterator]:
+                                    continue
+                                if i in DuplicateCourses.keys():
+                                    dupec.append(i)
+                                else:
+                                    DuplicateCourses[c[jterator]] += "*" + i
+                            #This deals with the relevant duplicate courses, and adjusts their split so that duplicate courses (that they now know are duplicate but did not at the time of initialization) is correctly placed.
+                            if len(dupec) > 0:
+                                DuplicateCourses[c[jterator]] += "/"
+                                for i in range(0,len(dupec)):
+                                    DuplicateCourses[c[jterator]] += idupec[i]
+                                    if i != len(dupec) - 1:
+                                        DuplicateCourses[c[jterator]] += "*"
+                                        
+                                    duperesult = DuplicateCourses[idupec[i]].split(",")
+                                    dupersplits = duperestult[-1].split("/")
+                                    dupersplits[1] += "*" + c[jterator]
+                                    dupersplita = duplersplits[0].split("*")
+                                    
+                                    kterator = 0
+                                    while kterator < len(dupersplita):
+                                        if dupersplita[kterator] == c[jterator]:
+                                            del dupersplita[kterator]
+                                        else:
+                                            kterator += 1
+                                            
+                                    dupersplits[0] = "*".join(dupersplita)
+                                    duperesult[-1] = "/".join(dupersplits)
+                                    DuplicateCourses[idupec[i]] = ",".join(duperesult)
+                            del c[jterator]
+                            jterator -= 1
+                        jterator += 1
 
 
-                    #if AppendChoice1 and AppendChoice2:
-                    #    print(requirementsplit[iterator])
-                    if AppendChoice1 and not AppendChoice2:
-                        requirementsplit[iterator] = c[0]
-                    elif not AppendChoice1 and AppendChoice2:
-                        requirementsplit[iterator] = c[1]
-                    elif not AppendChoice1 and not AppendChoice2:
-                        del requirementsplit[iterator]
+                    requirementsplit[iterator] = "/".join(c)
+##                    if c[1] not in ChoiceCourses.keys():
+##                        ChoiceCourses[c[1]] = str(requirementiterator)
+##                        AppendChoice2 = True
+##                    elif c[1] not in DuplicateCourses.keys():
+##                        DuplicateCourses[c[1]] = ChoiceCourses[c[1]] + "," + str(requirementiterator) + "*" + c[0]
+##
+##                        #This is the third time the requirement rewriting codeblock shows up.
+##                        backchange = newminor[int(ChoiceCourses[c[1]])].split(".")
+##                        split_backchange = backchange[1].split("*")
+##                        j = 0
+##                        while j < len(split_backchange):
+##                            split_j = split_backchange[j].split("/")
+##                            i = 0
+##                            while i < len(split_j):
+##                                if split_j[i] == c[1]:
+##                                    del split_j[i]
+##                                else:
+##                                    i += 1
+##                            if len(split_j) > 0:
+##                                split_backchange[j] = "/".join(split_j)
+##                            else:
+##                                del split_backchange[j]
+##                                iterator -= 1
+##                            j += 1
+##                        newminor[int(ChoiceCourses[c[1]])] = backchange[0] + "." + "*".join(split_backchange)
+##                        #print(newminor[int(ChoiceCourses[c[1]])])
+##                    else:
+##                        DuplicateCourses[c[1]] = DuplicateCourses[c[1]] + "," + str(requirementiterator) + "*" + c[0]
+
+
+##                    #if AppendChoice1 and AppendChoice2:
+##                    #    print(requirementsplit[iterator])
+##                    if AppendChoice1 and not AppendChoice2:
+##                        requirementsplit[iterator] = c[0]
+##                    elif not AppendChoice1 and AppendChoice2:
+##                        requirementsplit[iterator] = c[1]
+##                    elif not AppendChoice1 and not AppendChoice2:
+##                        del requirementsplit[iterator]
                         
                 iterator += 1
             newminor.append(split_i[0] + "." + "*".join(requirementsplit))
@@ -278,6 +356,7 @@ for minor in d2Array:
         else:
             newminor.append(m)
         requirementiterator += 1
+    print(newminor)
     #print(list(ChoiceCourses.keys()))
     #print(list(DuplicateCourses.keys()))
     #Deletes all duplicate courses that the student does not have, as they are useless for the purposes of calculating whether a minor is elegible
@@ -334,6 +413,7 @@ for minor in d2Array:
                         if i in StudentCourseTableCopy.keys():
                             c = max(c,int(StudentCourseTableCopy[i]))
                             d = True
+                            print(i)
                 if d:
                     if credit:
                         required_coursenumber -= c
@@ -386,7 +466,7 @@ for minor in d2Array:
                 iterator = 0
                 while iterator < len(r):
                     r[iterator].split("*")
-                    if int(r[iterator]) not in DuplicatesNeeded.keys():
+                    if int(r[iterator].split("*")[0]) not in DuplicatesNeeded.keys():
                         del r[iterator]
                     else:
                         iterator += 1
@@ -396,10 +476,13 @@ for minor in d2Array:
                     else:
                         requirementlist = DuplicatesNeeded[int(r[0].split("*")[0])].split(",")
                         if requirementlist[1] == "True":
-                            try:
-                                c -= StudentCourseTableCopy[r[0].split("*")[1]]
-                            except:
-                                dummy = 'dummy'
+                            cr = 0
+                            for i in r[0].split("/")[0].split("*")[1:]:
+                                try:
+                                    cr = max(cr,StudentCourseTableCopy[i])
+                                except:
+                                    dummy = 'dummy'
+                            c -= cr
                             requirementlist[0] = str(int(requirementlist[0]) - c)
                         else:
                             requirementlist[0] = str(int(requirementlist[0]) - 1)
@@ -422,10 +505,13 @@ for minor in d2Array:
             #print(r[1])
             requirementlist = DuplicatesNeeded[int(r[1].split("*")[0])].split(",")
             if requirementlist[1] == "True":
-                try:
-                    c -= StudentCourseTableCopy[r[1].split("*")[1]]
-                except:
-                    dummy = 'dummy'
+                cr = 0
+                for i in r[0].split("/")[0].split("*")[1:]:
+                    try:
+                        cr = max(cr,StudentCourseTableCopy[i])
+                    except:
+                        dummy = 'dummy'
+                c -= cr
                 requirementlist[0] = str(int(requirementlist[0]) - c)
             else:
                 requirementlist[0] = str(int(requirementlist[0]) - 1)
@@ -439,22 +525,26 @@ for minor in d2Array:
     print(DuplicateCourses)
     if len(DuplicatesNeeded) > 0:
         for requirements in DuplicatesNeeded.keys():
-            
-            for i in DuplicateCoursesUnused.keys():
-                j = DuplicateCoursesUnused[i].split(",")
+            numbers = DuplicatesNeeded[requirements].split(",")
+            for h in DuplicateCoursesUnused.keys():
+                j = DuplicateCoursesUnused[h].split(",")
+                
+                #print(j)
                 for k in j:
                     m = k.split("*")
+                    #print(m)
                     if int(m[0]) == requirements:
                         if len(m) > 1:
-                            #Deletes "loose" requirement (part of "X/Y" where Y is a duplicate and X is either duplicate or not)
+                            #Deletes "loose" requirement (X part of "X/Y" where Y is a duplicate and X is either duplicate or not)
                             backchange = newminor[requirements].split(".")
                             split_backchange = backchange[1].split("*")
                             j = 0
                             while j < len(split_backchange):
                                 split_j = split_backchange[j].split("/")
+                                #print(split_j)
                                 i = 0
                                 while i < len(split_j):
-                                    if split_j[i] == c[0]:
+                                    if split_j[i] in m[1:]:
                                         del split_j[i]
                                     else:
                                         i += 1
@@ -466,14 +556,32 @@ for minor in d2Array:
                             newminor[requirements] = backchange[0] + "." + "*".join(split_backchange)
 
                             #Appends "loose" requirement back to correct "X/Y" pair to maintain stability
-                            n = "/" + m[1]
+                            print("End")
+                            print(m)
+                            n = ""
+                            for i in range(1,len(m)):
+                                n += "/" + m[i]
+                            if numbers[1] == "True":
+                                search = h+n
+                                search = search.split("/")
+                                ma = 0
+                                cma = ""
+                                for i in search:
+                                    try:
+                                        if int(StudentCourseTableCopy[i].split(",")[0]) > ma:
+                                            ma = int(StudentCourseTableCopy[i].split(",")[0])
+                                            cma = i
+                                    except:
+                                        dummy = "dummy"
+                                if i != "":
+                                    n += " {currently fufilled by " + str(ma) + "-credit course " + cma + "}"
+                            print(n)
                         else:
                             n = ""
-                        newminor[requirements] += "*" + i + n
+                        newminor[requirements] += "*" + h + n
                         break
                 
             #Gonna need to figure out how to add duplicated courses
-            numbers = DuplicatesNeeded[requirements].split(",")
             if numbers[1] == "True":
                 cc = "credit"
             else:
