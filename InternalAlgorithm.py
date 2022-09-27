@@ -117,10 +117,13 @@ class Minor:
 
 
 d2Array = GetMinorCertificateRequirements("MinorCertificateRequirements.csv")
-print(d2Array)
-print()
 StudentCourseTable = GetStudentCoursesDebug("Test.txt")
-print(StudentCourseTable)
+
+#Useful for debug of student/requirements reports
+#print(d2Array)
+#print()
+#print(StudentCourseTable)
+
 MinorArray = []
 #Note: For all student/minor requirements, it will *only* count the requirement as fufilled if the student course is identical to the one in the requirement.
 #For example, CAS 100A, CAS 100B and CAS 100C will not count for the purposes of fufilling a CAS 100 class.
@@ -138,7 +141,7 @@ for minor in d2Array:
     requirementiterator = 0
     #Tests whether minor/certificate has duplicate courses in "choose any X of Y" requirements, and if so puts them in a special duplicate course list
     newminor = []
-    print(name)
+    #print(name)
     for m in minor:
         split_i = m.split(".")
         for i in range(0,len(split_i)):
@@ -156,7 +159,6 @@ for minor in d2Array:
                     c[i] = c[i].strip()
                 #print(c[0])
                 #There are two cases that need to be tackled for each requirement: One where only a single course can be used to fufill a sub-requirement, and one where multiple courses can be used to fufuill a sub-requirement.
-                #Note: The current code only deals with cases where 1-2 courses can be used to fufill a sub-requirement.  This may need to be changed in the future.
                 #The block of code below deals with the first case.
                 if len(c) == 1:
                     if c[0] not in ChoiceCourses:
@@ -204,19 +206,19 @@ for minor in d2Array:
                     AppendChoice1 = False
                     AppendChoice2 = False
                     jterator = 0
-                    print(c)
-                    print(ccopy)
+                    #print(c)
+                    #print(ccopy)
                     while jterator < len(c):
                         
                         if c[jterator] not in ChoiceCourses.keys():
                             ChoiceCourses[c[jterator]] = str(requirementiterator)
                         elif c[jterator] not in DuplicateCourses.keys():
                             #This block of code deals with any courses that are both duplicates and have multiple courses eligible for fufilling sub-requirements.
-                            #This block of code shows up twice, once here and once in the block of code that 
+                            #This block of code shows up twice, once here and once in the block of code where the course is already in DuplicateCourses.
                             DuplicateCourses[c[jterator]] = ChoiceCourses[c[jterator]] + "," + str(requirementiterator)
                             dupec = []
                             for i in ccopy:
-                                print(i)
+                                #print(i)
                                 if i == c[jterator]:
                                     continue
                                 if i in DuplicateCourses.keys():
@@ -248,7 +250,7 @@ for minor in d2Array:
                             #This is the second time the requirement rewriting codeblock shows up.
                             backchange = newminor[int(ChoiceCourses[c[jterator]])].split(".")
                             split_backchange = backchange[1].split("*")
-                            print(backchange)
+                            #print(backchange)
                             j = 0
                             while j < len(split_backchange):
                                 split_j = split_backchange[j].split("/")
@@ -310,44 +312,7 @@ for minor in d2Array:
 
 
                     requirementsplit[iterator] = "/".join(c)
-##                    if c[1] not in ChoiceCourses.keys():
-##                        ChoiceCourses[c[1]] = str(requirementiterator)
-##                        AppendChoice2 = True
-##                    elif c[1] not in DuplicateCourses.keys():
-##                        DuplicateCourses[c[1]] = ChoiceCourses[c[1]] + "," + str(requirementiterator) + "*" + c[0]
-##
-##                        #This is the third time the requirement rewriting codeblock shows up.
-##                        backchange = newminor[int(ChoiceCourses[c[1]])].split(".")
-##                        split_backchange = backchange[1].split("*")
-##                        j = 0
-##                        while j < len(split_backchange):
-##                            split_j = split_backchange[j].split("/")
-##                            i = 0
-##                            while i < len(split_j):
-##                                if split_j[i] == c[1]:
-##                                    del split_j[i]
-##                                else:
-##                                    i += 1
-##                            if len(split_j) > 0:
-##                                split_backchange[j] = "/".join(split_j)
-##                            else:
-##                                del split_backchange[j]
-##                                iterator -= 1
-##                            j += 1
-##                        newminor[int(ChoiceCourses[c[1]])] = backchange[0] + "." + "*".join(split_backchange)
-##                        #print(newminor[int(ChoiceCourses[c[1]])])
-##                    else:
-##                        DuplicateCourses[c[1]] = DuplicateCourses[c[1]] + "," + str(requirementiterator) + "*" + c[0]
 
-
-##                    #if AppendChoice1 and AppendChoice2:
-##                    #    print(requirementsplit[iterator])
-##                    if AppendChoice1 and not AppendChoice2:
-##                        requirementsplit[iterator] = c[0]
-##                    elif not AppendChoice1 and AppendChoice2:
-##                        requirementsplit[iterator] = c[1]
-##                    elif not AppendChoice1 and not AppendChoice2:
-##                        del requirementsplit[iterator]
                         
                 iterator += 1
             newminor.append(split_i[0] + "." + "*".join(requirementsplit))
@@ -356,20 +321,20 @@ for minor in d2Array:
         else:
             newminor.append(m)
         requirementiterator += 1
-    print(newminor)
+    #print(newminor)
     #print(list(ChoiceCourses.keys()))
     #print(list(DuplicateCourses.keys()))
     #Deletes all duplicate courses that the student does not have, as they are useless for the purposes of calculating whether a minor is elegible
     #Also makes a copy of the original duplicate course list that has all the unused courses.
     #This is so said unused courses can be retrieved for the purposes of failed requirement course calculation
-    print(DuplicateCourses)
+    #print(DuplicateCourses)
     DuplicateCoursesUnused = copy.deepcopy(DuplicateCourses)
     for i in DuplicateCoursesUnused.keys():
         try:
             DuplicateCourses[i] = StudentCourseTableCopy[i] + "," + DuplicateCourses[i]
         except:
             del DuplicateCourses[i]
-    print(DuplicateCourses)
+    #print(DuplicateCourses)
     for i in DuplicateCourses.keys():
         del DuplicateCoursesUnused[i]
         
@@ -413,7 +378,7 @@ for minor in d2Array:
                         if i in StudentCourseTableCopy.keys():
                             c = max(c,int(StudentCourseTableCopy[i]))
                             d = True
-                            print(i)
+                            #print(i)
                 if d:
                     if credit:
                         required_coursenumber -= c
@@ -446,10 +411,9 @@ for minor in d2Array:
                 failedcount += 1
                 MinorRequirements.append(str(numcredits) + " credits from " + field + " " + split_requirement[1] + "-level classes or higher")
 
-    #I'm like 90% sure that this is straight up wrong, will need to test thoroughly
-    print(name)
-    print(DuplicatesNeeded)
-    print(DuplicateCourses)
+    #print(name)
+    #print(DuplicatesNeeded)
+    #print(DuplicateCourses)
     DuplicateCheck = True
     while len(DuplicatesNeeded) > 0 and len(DuplicateCourses) > 0:
         #This absolute nonsense of a code block serves to (attempt to) solve the problem of placing the correct duplicate courses in the optimal course requirements such that the minor/certificate will be correctly verified as complete.
@@ -462,7 +426,7 @@ for minor in d2Array:
                 r = DuplicateCourses[keys].split(",")
                 c = int(r[0])
                 del r[0]
-                print(r)
+                #print(r)
                 iterator = 0
                 while iterator < len(r):
                     r[iterator].split("*")
@@ -521,8 +485,8 @@ for minor in d2Array:
                 DuplicateCheck = True
                 del DuplicatesNeeded[int(r[1].split("*")[0])]
             del DuplicateCourses[k]
-    print(DuplicatesNeeded)
-    print(DuplicateCourses)
+    #print(DuplicatesNeeded)
+    #print(DuplicateCourses)
     if len(DuplicatesNeeded) > 0:
         for requirements in DuplicatesNeeded.keys():
             numbers = DuplicatesNeeded[requirements].split(",")
@@ -556,8 +520,8 @@ for minor in d2Array:
                             newminor[requirements] = backchange[0] + "." + "*".join(split_backchange)
 
                             #Appends "loose" requirement back to correct "X/Y" pair to maintain stability
-                            print("End")
-                            print(m)
+                            #print("End")
+                            #print(m)
                             n = ""
                             for i in range(1,len(m)):
                                 n += "/" + m[i]
@@ -575,13 +539,12 @@ for minor in d2Array:
                                         dummy = "dummy"
                                 if i != "":
                                     n += " {currently fufilled by " + str(ma) + "-credit course " + cma + "}"
-                            print(n)
+                            #print(n)
                         else:
                             n = ""
                         newminor[requirements] += "*" + h + n
                         break
                 
-            #Gonna need to figure out how to add duplicated courses
             if numbers[1] == "True":
                 cc = "credit"
             else:
