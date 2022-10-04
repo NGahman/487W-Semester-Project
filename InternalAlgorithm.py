@@ -91,10 +91,12 @@ def GetStudentCoursesDebug(filename):
     return StudentDict
         
 class Minor:
-    def __init__(self,name,completion,requirements):
+    def __init__(self,name,completion,fullrequirements,failedrequirements):
         self.name = name
         self.completion = completion
-        self.requirements = requirements
+        self.fullrequirements = fullrequirements
+        
+        self.failedrequirements = failedrequirements
         
     def __eq__(self,other):
         if self.completion == completion:
@@ -117,7 +119,8 @@ class Minor:
 
 
 d2Array = GetMinorCertificateRequirements("MinorCertificateRequirements.csv")
-StudentCourseTable = GetStudentCoursesDebug("Test.txt")
+#StudentCourseTable = GetStudentCoursesDebug("Test.txt")
+StudentCourseTable = GetStudentCourses("SSR_TSRPT.pdf")
 
 #Useful for debug of student/requirements reports
 #print(d2Array)
@@ -142,6 +145,27 @@ for minor in d2Array:
     #Tests whether minor/certificate has duplicate courses in "choose any X of Y" requirements, and if so puts them in a special duplicate course list
     newminor = []
     #print(name)
+
+    fullrequirements = []
+    for m in range(1,len(minor)):
+        split_i = minor[m].split(".")
+        for i in range(0,len(split_i)):
+            split_i[i] = split_i[i].strip()
+        if len(split_i) == 1:
+            fullrequirements.append(split_i[0])
+            
+        elif len(split_i) == 2:
+            if split_i[0][0] == "(" or split_i[0][-1] == ")":
+                split_i[0] = split_i[0][1:-1]
+                cc = "credits"
+            else:
+                cc = "courses"
+                
+            fullrequirements.append(split_i[0] + " " + cc + " from (" + str(split_i[1].split("*"))[1:-1] + ")")
+
+        elif len(split_i) == 3:
+            fullrequirements.append(split_i[2] + " credits from " + split_i[0] + " " + split_i[1] + "-level classes or higher")
+    
     for m in minor:
         split_i = m.split(".")
         for i in range(0,len(split_i)):
@@ -577,13 +601,14 @@ for minor in d2Array:
             
 
     completion = (requirementcount-failedcount) / requirementcount
-    MinorArray.append(Minor(name,completion,MinorRequirements))
+    MinorArray.append(Minor(name,completion,fullrequirements,MinorRequirements))
 print()
 MinorArray.sort(reverse=True)
 for certificate in MinorArray:
     print(certificate.name + " Completion Rate: " + str(certificate.completion * 100) + "%")
-    if len(certificate.requirements) > 0:
-        print("Remaining Requirements: " + str(list(certificate.requirements)))
+    print("Full Requirements: " + str(list(certificate.fullrequirements)))
+    if len(certificate.failedrequirements) > 0:
+        print("Remaining Requirements: " + str(list(certificate.failedrequirements)))
 
         #Doesn't work how I want it to, I'd have to directly go into the requirements and edit the relevant 2. ones
         #print(str(list(s for s in sorted(certificate.requirements))))
