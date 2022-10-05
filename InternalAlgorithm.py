@@ -42,18 +42,24 @@ def GetStudentCourses(filename):
         
         if ord(records[i][-1]) == 32 and ord(records[i+1][0]) == 32 and len(records[i]) > 1 and len(records[i+1]) > 1:
             try:
+                k = False
+                r = True
                 key = records[i].strip() + " " + records[i+1][1:].strip()
                 #Citation for checking if string contains number: https://www.geeksforgeeks.org/python-check-if-string-contains-any-number/
                 if not any(char.isdigit() for char in records[i+1][1:].strip()):
                     key += "100"
+                    k = True
                 if key in StudentDict and int(float(records[i+4])) > 0:
                     StudentDict[key] = str(StudentDict[key]) + "," + str(int(float(records[i+4])))
+                    r = False
                 elif int(float(records[i+4])) > 0:
                     StudentDict[key] = str(int(float(records[i+4])))
-                if records[i].strip() in StudentDict and int(float(records[i+4])) > 0:
+                if records[i].strip() in StudentDict and int(float(records[i+4])) > 0 and r:
                     StudentDict[records[i].strip()] = StudentDict[records[i].strip()] + "," + records[i+1][1:].strip()
-                elif int(float(records[i+4])) > 0:
+                elif int(float(records[i+4])) > 0 and r:
                     StudentDict[records[i].strip()] = records[i+1][1:].strip()
+                if k:
+                    StudentDict[records[i].strip()] += "100"
             except:
                 print(records[i])
                 print(records[i+1])
@@ -71,19 +77,28 @@ def GetStudentCoursesDebug(filename):
         try:
             split_records = records[i].split(",")
             #print(split_records)
+            k = False
+            r = True
             key = split_records[0].strip()
             #Citation for checking if string contains number: https://www.geeksforgeeks.org/python-check-if-string-contains-any-number/
             if not any(char.isdigit() for char in key):
                 key += "100"
+                k = True
             if key in StudentDict and int(split_records[1]) > 0:
                 StudentDict[key] = str(StudentDict[key]) + "," + str(int(split_records[1]))
+                r = False
             elif int(split_records[1]) > 0:
                 StudentDict[key] = str(int(split_records[1]))
             
-            if split_records[0].split(" ")[0] in StudentDict and int(split_records[1]) > 0:
+            if split_records[0].split(" ")[0] in StudentDict and int(split_records[1]) > 0 and r:
                 StudentDict[split_records[0].split(" ")[0]] = StudentDict[split_records[0].split(" ")[0]] + "," + split_records[0].split(" ")[1].strip()
-            elif int(split_records[1]) > 0:
+            elif int(split_records[1]) > 0 and r:
                 StudentDict[split_records[0].split(" ")[0]] = split_records[0].split(" ")[1].strip()
+
+            if k:
+                StudentDict[records[i].strip()] += "100"
+            
+            
                 
         except Exception as e:
             print(e)
@@ -91,11 +106,11 @@ def GetStudentCoursesDebug(filename):
     return StudentDict
         
 class Minor:
-    def __init__(self,name,completion,fullrequirements,failedrequirements):
+    def __init__(self,name,completion,fullrequirements,completedrequirements,failedrequirements):
         self.name = name
         self.completion = completion
         self.fullrequirements = fullrequirements
-        
+        self.completedrequirements = completedrequirements
         self.failedrequirements = failedrequirements
         
     def __eq__(self,other):
@@ -114,18 +129,44 @@ class Minor:
         return False
         
     
+
+
+
+def delcourse(StudentCourseTable,RemovedCourse):
+    rc = RemovedCourse.strip().split(" ")
+    tdata = StudentCourseTable[RemovedCourse].split(",")
+    if len(tdata) > 0:
+        del tdata[0]
+    if len(tdata) > 0:
+        StudentCourseTable[RemovedCourse] = ",".join(tdata)
+    else:
+        del StudentCourseTable[RemovedCourse]
+        tdata = StudentCourseTable[rc[0]].split(",")
+        i = 0
+        while i < len(tdata):
+            if tdata[i] == rc[1]:
+                del tdata[i]
+            else:
+                i += 1
+        StudentCourseTable[rc[0]] = ",".join(tdata)
+        return StudentCourseTable
+
+def getcoursecredits(StudentCourseTable,Course):
+    c = StudentCourseTable[Course].split(",")
+    return int(c[0])
+        
     
         
 
 
 d2Array = GetMinorCertificateRequirements("MinorCertificateRequirements.csv")
-#StudentCourseTable = GetStudentCoursesDebug("Test.txt")
-StudentCourseTable = GetStudentCourses("SSR_TSRPT.pdf")
+StudentCourseTable = GetStudentCoursesDebug("Test.txt")
+#StudentCourseTable = GetStudentCourses("SSR_TSRPT.pdf")
 
 #Useful for debug of student/requirements reports
-#print(d2Array)
-#print()
-#print(StudentCourseTable)
+print(d2Array)
+print()
+print(StudentCourseTable)
 
 MinorArray = []
 #Note: For all student/minor requirements, it will *only* count the requirement as fufilled if the student course is identical to the one in the requirement.
@@ -142,11 +183,13 @@ for minor in d2Array:
     ChoiceCourses = {}
     DuplicatesNeeded = {}
     requirementiterator = 0
-    #Tests whether minor/certificate has duplicate courses in "choose any X of Y" requirements, and if so puts them in a special duplicate course list
-    newminor = []
-    #print(name)
-
+    completedrequirements = []
     fullrequirements = []
+    
+    newminor = []
+    print(name)
+
+    #Gets full requirements from minor
     for m in range(1,len(minor)):
         split_i = minor[m].split(".")
         for i in range(0,len(split_i)):
@@ -157,15 +200,18 @@ for minor in d2Array:
         elif len(split_i) == 2:
             if split_i[0][0] == "(" or split_i[0][-1] == ")":
                 split_i[0] = split_i[0][1:-1]
-                cc = "credits"
+                cc = "credit"
             else:
-                cc = "courses"
+                cc = "course"
+            if int(split_i[0]) > 1:
+                cc += "s"
                 
             fullrequirements.append(split_i[0] + " " + cc + " from (" + str(split_i[1].split("*"))[1:-1] + ")")
 
         elif len(split_i) == 3:
             fullrequirements.append(split_i[2] + " credits from " + split_i[0] + " " + split_i[1] + "-level classes or higher")
-    
+
+    #Tests whether minor/certificate has duplicate courses in "choose any X of Y" requirements, and if so puts them in a special duplicate course list
     for m in minor:
         split_i = m.split(".")
         for i in range(0,len(split_i)):
@@ -361,19 +407,17 @@ for minor in d2Array:
     #print(DuplicateCourses)
     for i in DuplicateCourses.keys():
         del DuplicateCoursesUnused[i]
+        StudentCourseTableCopy = delcourse(StudentCourseTableCopy,i)
         
                              
     for r in range(1,len(newminor)):
+        fufilledcourse = []
         requirement = newminor[r]
         split_requirement = requirement.split(".")
         if len(split_requirement) == 1:
             try:
-                split_course = StudentCourseTableCopy[requirement].split(",")
-                if len(split_course) == 1:
-                    del StudentCourseTableCopy[requirement]
-                else:
-                    del split_course[0]
-                    StudentCourseTableCopy[requirement] = ",".join(split_course)
+                StudentCourseTableCopy = delcourse(StudentCourseTableCopy,requirement)
+                completionrequirements.append(requirement)
             except Exception as e:
                 failedcount += 1
                 MinorRequirements.append(requirement)
@@ -385,33 +429,65 @@ for minor in d2Array:
             if split_requirement[0][0] == "(" and split_requirement[0][-1] == ")":
                 required_coursenumber = int(split_requirement[0][1:-1])
                 credit = True
+                debug = True
+                #print(DuplicateCourses)
             else:
                 required_coursenumber = int(split_requirement[0])
                 credit = False
+                debug = False
             required_courses = split_requirement[1].split("*")
+            if debug:
+                print(required_courses)
+                print(len(required_courses))
+                
             iterator = 0
             while iterator < len(required_courses) and required_coursenumber > 0:
+                print(required_courses[iterator])
+                print(iterator)
+                print(len(required_courses))
                 if required_courses[iterator] == "":
+                    print("delete " + required_courses[iterator])
                     del required_courses[iterator]
                     continue
                 rc = required_courses[iterator].split("/")
                 c = 0
                 d = False
+                currentcourse = ""
                 for i in rc:
                     if i not in DuplicateCourses:
                         if i in StudentCourseTableCopy.keys():
-                            c = max(c,int(StudentCourseTableCopy[i]))
+                            if getcoursecredits(StudentCourseTableCopy,i) > c:
+                                c = getcoursecredits(StudentCourseTableCopy,i)
+                                currentcourse = i
+                            c = max(c,getcoursecredits(StudentCourseTableCopy,i))
                             d = True
+                            
+                            
+                            
                             #print(i)
                 if d:
                     if credit:
                         required_coursenumber -= c
                     else:
                         required_coursenumber -= 1
+                    StudentCourseTableCopy = delcourse(StudentCourseTableCopy,currentcourse)
+                    fufilledcourse.append([currentcourse,c])
                     del required_courses[iterator]
-                iterator += 1
+                else:
+                    iterator += 1
             if required_coursenumber > 0:
                 DuplicatesNeeded[r] = str(required_coursenumber) + "," + str(credit)
+            else:
+                sstring = str(fullrequirements[r-1]) + ": Fulfilled by ("
+                for i in fufilledcourse:
+                    if credit:
+                        sstring += str(i[1]) + "-credit course " + i[0]
+                    else:
+                        sstring += i[0]
+                    if i != fufilledcourse[-1]:
+                        sstring += ", "
+                sstring += ")"
+                completedrequirements.append(sstring)
             
                     
                     
@@ -422,15 +498,29 @@ for minor in d2Array:
             try:
                 #Citation for extracting numbers from string: https://www.geeksforgeeks.org/python-extract-numbers-from-string/
                 fieldcoursennumbers = [int(course) for course in StudentCourseTableCopy[field].split() if course.isdigit()]
+                print(fieldcoursenumbers)
                 fieldcourses = StudentCourseTableCopy[field].split(",")
+                print(fieldcourses)
                 for course in range(0,len(fieldcoursenumbers)):
                     if numcredits <= 0:
                         break
                     if fieldcoursenumbers[course] > split_requirement[1]:
-                        numcredits -= int(StudentCourseTableCopy[fieldcourses[course]])
+                        tdata = StudentCourseTableCopy[fieldcourses[course]].split(",")
+                        i = 0
+                        while i < len(tdata) and numcredits > 0:
+                            numcredits -= int(tdata[i])
+                        fufilledcourse.append([fieldcourses[course],int(tdata[i])])
                 if numcredits > 0:
                     failedcount += 1
                     MinorRequirements.append(str(numcredits) + " credits from " + field + " " + split_requirement[1] + "-level classes or higher")
+                else:
+                    sstring = str(fullrequirements[r-1]) + ": Fulfilled by ("
+                for i in fufilledcourse:
+                    sstring += str(i[1]) + "-credit course " + i[0]
+                    if i != fufilledcourse[-1]:
+                        sstring += ", "
+                sstring += ")"
+                completedrequirements.append(sstring)
             except:
                 failedcount += 1
                 MinorRequirements.append(str(numcredits) + " credits from " + field + " " + split_requirement[1] + "-level classes or higher")
@@ -601,14 +691,20 @@ for minor in d2Array:
             
 
     completion = (requirementcount-failedcount) / requirementcount
-    MinorArray.append(Minor(name,completion,fullrequirements,MinorRequirements))
+    MinorArray.append(Minor(name,completion,fullrequirements,completedrequirements,MinorRequirements))
 print()
 MinorArray.sort(reverse=True)
 for certificate in MinorArray:
     print(certificate.name + " Completion Rate: " + str(certificate.completion * 100) + "%")
+    print()
     print("Full Requirements: " + str(list(certificate.fullrequirements)))
+    print()
+    if len(certificate.completedrequirements) > 0:
+        print("Completed Requirements: " + str(list(certificate.completedrequirements)))
+        print()
     if len(certificate.failedrequirements) > 0:
         print("Remaining Requirements: " + str(list(certificate.failedrequirements)))
+        print()
 
         #Doesn't work how I want it to, I'd have to directly go into the requirements and edit the relevant 2. ones
         #print(str(list(s for s in sorted(certificate.requirements))))
