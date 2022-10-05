@@ -199,9 +199,9 @@ d2Array = GetMinorCertificateRequirements("MinorCertificateRequirements.csv")
 StudentCourseTable = GetStudentCourses(Transcript)
 
 #Useful for debug of student/requirements reports
-#print(d2Array)
-#print()
-#print(StudentCourseTable)
+print(d2Array)
+print()
+print(StudentCourseTable)
 
 MinorArray = []
 #Note: For all student/minor requirements, it will *only* count the requirement as fufilled if the student course is identical to the one in the requirement.
@@ -453,8 +453,9 @@ for minor in d2Array:
         if len(split_requirement) == 1:
             try:
                 StudentCourseTableCopy = delcourse(StudentCourseTableCopy,requirement)
-                completionrequirements.append(requirement)
+                completedrequirements.append(requirement)
             except Exception as e:
+                #print(e)
                 failedcount += 1
                 MinorRequirements.append(requirement)
                 
@@ -708,8 +709,8 @@ for minor in d2Array:
                                                 cma = i
                                         except:
                                             dummy = "dummy"
-                                    if i != "":
-                                        n += " {currently fufilled by " + str(ma) + "-credit course " + cma + "}"
+                                    #if i != "":
+                                        #n += " {currently fufilled by " + str(ma) + "-credit course " + cma + "}"
                                 #print(n)
                             else:
                                 n = ""
