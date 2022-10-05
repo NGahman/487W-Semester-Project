@@ -128,7 +128,13 @@ class Minor:
             return True
         return False
         
-    
+class DuplicateRequirement:
+    def __init__(self,remainingcoursenumber,credit,field,fufilledcourse,level):
+        self.remainingcoursenumber = remainingcoursenumber
+        self.credit = credit
+        self.field = field
+        self.fufilledcourse = fufilledcourse
+        self.level = level
 
 
 
@@ -155,18 +161,47 @@ def getcoursecredits(StudentCourseTable,Course):
     c = StudentCourseTable[Course].split(",")
     return int(c[0])
         
-    
+def MakeCompletedListString(r,fullrequirements,fufilledcourse,credit):
+    sstring = str(fullrequirements[r-1]) + ": Fulfilled by ("
+    for i in fufilledcourse:
+        if credit:
+            sstring += str(i[1]) + "-credit course " + i[0]
+        else:
+            sstring += i[0]
+        if i != fufilledcourse[-1]:
+            sstring += ", "
+    sstring += ")"
+    return sstring
+
+def MakeFailedListString(fufilledcourse,credit):
+    sstring = ""
+    for i in fufilledcourse:
+        if credit:
+            sstring += str(i[1]) + "-credit course " + i[0]
+        else:
+            sstring += i[0]
+        if i != fufilledcourse[-1]:
+            sstring += ", "
+    sstring += ")"
+    return sstring
         
 
 
+#Depending on the usage of the algorithm the transcript to be drawn from can either be hardcoded for ease of use, or inputted manually through the Python Shell.
+Transcript = input("Enter the filename of the transcript (including the file extension): ")
+#Transcript = "SSR_TSRPT.pdf"
+
+#This is primarily for debugging.
+#StudentCourseTable = GetStudentCoursesDebug("Test.txt")
+
 d2Array = GetMinorCertificateRequirements("MinorCertificateRequirements.csv")
-StudentCourseTable = GetStudentCoursesDebug("Test.txt")
-#StudentCourseTable = GetStudentCourses("SSR_TSRPT.pdf")
+
+StudentCourseTable = GetStudentCourses(Transcript)
 
 #Useful for debug of student/requirements reports
-print(d2Array)
-print()
-print(StudentCourseTable)
+#print(d2Array)
+#print()
+#print(StudentCourseTable)
 
 MinorArray = []
 #Note: For all student/minor requirements, it will *only* count the requirement as fufilled if the student course is identical to the one in the requirement.
@@ -187,7 +222,7 @@ for minor in d2Array:
     fullrequirements = []
     
     newminor = []
-    print(name)
+    #print(name)
 
     #Gets full requirements from minor
     for m in range(1,len(minor)):
@@ -414,6 +449,7 @@ for minor in d2Array:
         fufilledcourse = []
         requirement = newminor[r]
         split_requirement = requirement.split(".")
+        #This case deals with minor/certificate requirements that require the student to take a specific course.
         if len(split_requirement) == 1:
             try:
                 StudentCourseTableCopy = delcourse(StudentCourseTableCopy,requirement)
@@ -422,6 +458,7 @@ for minor in d2Array:
                 failedcount += 1
                 MinorRequirements.append(requirement)
                 
+        #This case deals with minor/certificate requirements that require the student to take X courses from a given list Y.
         #Note: This should only be triggered in certificates.  Triggering case 2 and case 3 in the same minor/certificate may cause double counting (working on fixing this).
         #May or may not need to be fixed
         elif len(split_requirement) == 2:
@@ -436,17 +473,17 @@ for minor in d2Array:
                 credit = False
                 debug = False
             required_courses = split_requirement[1].split("*")
-            if debug:
-                print(required_courses)
-                print(len(required_courses))
+            #if debug:
+                #print(required_courses)
+                #print(len(required_courses))
                 
             iterator = 0
             while iterator < len(required_courses) and required_coursenumber > 0:
-                print(required_courses[iterator])
-                print(iterator)
-                print(len(required_courses))
+                #print(required_courses[iterator])
+                #print(iterator)
+                #print(len(required_courses))
                 if required_courses[iterator] == "":
-                    print("delete " + required_courses[iterator])
+                    #print("delete " + required_courses[iterator])
                     del required_courses[iterator]
                     continue
                 rc = required_courses[iterator].split("/")
@@ -476,7 +513,7 @@ for minor in d2Array:
                 else:
                     iterator += 1
             if required_coursenumber > 0:
-                DuplicatesNeeded[r] = str(required_coursenumber) + "," + str(credit)
+                DuplicatesNeeded[r] = DuplicateRequirement(required_coursenumber,credit,"",fufilledcourse,0)
             else:
                 sstring = str(fullrequirements[r-1]) + ": Fulfilled by ("
                 for i in fufilledcourse:
@@ -486,48 +523,57 @@ for minor in d2Array:
                         sstring += i[0]
                     if i != fufilledcourse[-1]:
                         sstring += ", "
-                sstring += ")"
+                sstring = MakeCompletedListString(r,fullrequirements,fufilledcourse,credit)
                 completedrequirements.append(sstring)
             
                     
-                    
+
+        #This case deals with minor/certificate requirements that require the student to have X credits in a given field Y.  
         #Note: this should only occur in minors.  Triggering case 2 and case 3 in the same minor/certificate may cause double counting (working on fixing this).
         elif len(split_requirement) == 3:
             field = split_requirement[0]
-            numcredits = split_requirement[2]
+            numcredits = int(split_requirement[2])
+            #print(field)
             try:
                 #Citation for extracting numbers from string: https://www.geeksforgeeks.org/python-extract-numbers-from-string/
-                fieldcoursennumbers = [int(course) for course in StudentCourseTableCopy[field].split() if course.isdigit()]
-                print(fieldcoursenumbers)
-                fieldcourses = StudentCourseTableCopy[field].split(",")
-                print(fieldcourses)
+                fieldcoursenumbers = [int(course) for course in StudentCourseTableCopy[field].split() if course.isdigit()]
                 for course in range(0,len(fieldcoursenumbers)):
                     if numcredits <= 0:
                         break
-                    if fieldcoursenumbers[course] > split_requirement[1]:
-                        tdata = StudentCourseTableCopy[fieldcourses[course]].split(",")
+                    if int(fieldcoursenumbers[course]) >= int(split_requirement[1]):
+                        fieldcourses = str(field) + " " + str(fieldcoursenumbers[course])
+                        tdata = StudentCourseTableCopy[fieldcourses].split(",")
                         i = 0
                         while i < len(tdata) and numcredits > 0:
                             numcredits -= int(tdata[i])
-                        fufilledcourse.append([fieldcourses[course],int(tdata[i])])
+                            fufilledcourse.append([fieldcourses,int(tdata[i])])
+                            i += 1
                 if numcredits > 0:
-                    failedcount += 1
-                    MinorRequirements.append(str(numcredits) + " credits from " + field + " " + split_requirement[1] + "-level classes or higher")
+                    DuplicatesNeeded[r] = DuplicateRequirement(numcredits,True,field,fufilledcourse,int(split_requirement[1]))
+                    #failedcount += 1
+                    #MinorRequirements.append(str(numcredits) + " credits from " + field + " " + split_requirement[1] + "-level classes or higher")
                 else:
-                    sstring = str(fullrequirements[r-1]) + ": Fulfilled by ("
-                for i in fufilledcourse:
-                    sstring += str(i[1]) + "-credit course " + i[0]
-                    if i != fufilledcourse[-1]:
-                        sstring += ", "
-                sstring += ")"
-                completedrequirements.append(sstring)
-            except:
-                failedcount += 1
-                MinorRequirements.append(str(numcredits) + " credits from " + field + " " + split_requirement[1] + "-level classes or higher")
+                    sstring = MakeCompletedListString(r,fullrequirements,fufilledcourse,True)
+                    completedrequirements.append(sstring)
+            except Exception as e:
+                DuplicatesNeeded[r] = DuplicateRequirement(numcredits,True,field,fufilledcourse,int(split_requirement[1]))
+                #failedcount += 1
+                #MinorRequirements.append(str(numcredits) + " credits from " + field + " " + split_requirement[1] + "-level classes or higher")
 
     #print(name)
     #print(DuplicatesNeeded)
     #print(DuplicateCourses)
+
+    for n in DuplicatesNeeded.keys():
+        if DuplicatesNeeded[n].field == "":
+            continue
+        for keys in DuplicateCourses.keys():
+            c = keys.split(" ")
+            if c[0] == DuplicatesNeeded[n].field and int(c[1]) >= DuplicatesNeeded[n].level:
+                DuplicateCourses[keys] += "," + n
+                
+            
+    
     DuplicateCheck = True
     while len(DuplicatesNeeded) > 0 and len(DuplicateCourses) > 0:
         #This absolute nonsense of a code block serves to (attempt to) solve the problem of placing the correct duplicate courses in the optimal course requirements such that the minor/certificate will be correctly verified as complete.
@@ -552,23 +598,28 @@ for minor in d2Array:
                     if len(r) == 0:
                         DuplicateCoursesDelete[keys] = ""
                     else:
-                        requirementlist = DuplicatesNeeded[int(r[0].split("*")[0])].split(",")
-                        if requirementlist[1] == "True":
-                            cr = 0
-                            for i in r[0].split("/")[0].split("*")[1:]:
-                                try:
-                                    cr = max(cr,StudentCourseTableCopy[i])
-                                except:
-                                    dummy = 'dummy'
-                            c -= cr
-                            requirementlist[0] = str(int(requirementlist[0]) - c)
+                        dupekey = int(r[0].split("*")[0])
+                        cr = 0
+                        for i in r[0].split("/")[0].split("*")[1:]:
+                            try:
+                                cr = max(cr,StudentCourseTableCopy[i])
+                            except:
+                                dummy = 'dummy'
+                        c -= cr
+                        
+                        if DuplicatesNeeded[dupekey].credit == True:
+                            DuplicatesNeeded[dupekey].remainingcoursenumber -= c
                         else:
-                            requirementlist[0] = str(int(requirementlist[0]) - 1)
-                        if int(requirementlist[0]) > 0:
-                            DuplicatesNeeded[int(r[0])] = ",".join(requirementlist)
-                        else:
+                            DuplicatesNeeded[dupekey].remainingcoursenumber -= 1
+                        
+                        DuplicatesNeeded[dupekey].fufilledcourse.append([keys,c])
+                        
+                        if DuplicatesNeeded[dupekey].remainingcoursenumber <= 0:
                             DuplicateCheck = True
-                            del DuplicatesNeeded[int(r[0].split("*")[0])]
+
+                            sstring = MakeCompletedListString(dupekey,fullrequirements,DuplicatesNeeded[dupekey].fufilledcourse,DuplicatesNeeded[dupekey].credit)
+                            completedrequirements.append(sstring)
+                            del DuplicatesNeeded[dupekey]
                         DuplicateCoursesDelete[keys] = ""
 
             for keys in DuplicateCoursesDelete.keys():
@@ -581,106 +632,119 @@ for minor in d2Array:
             r = DuplicateCourses[k].split(",")
             c = int(r[0])
             #print(r[1])
-            requirementlist = DuplicatesNeeded[int(r[1].split("*")[0])].split(",")
-            if requirementlist[1] == "True":
-                cr = 0
-                for i in r[0].split("/")[0].split("*")[1:]:
-                    try:
-                        cr = max(cr,StudentCourseTableCopy[i])
-                    except:
-                        dummy = 'dummy'
-                c -= cr
-                requirementlist[0] = str(int(requirementlist[0]) - c)
+            dupekey = int(r[1].split("*")[0])
+            cr = 0
+            for i in r[0].split("/")[0].split("*")[1:]:
+                try:
+                    cr = max(cr,StudentCourseTableCopy[i])
+                except:
+                    dummy = 'dummy'
+            c -= cr
+
+            if DuplicatesNeeded[dupekey].credit == True:
+                DuplicatesNeeded[dupekey].remainingcoursenumber -= c
             else:
-                requirementlist[0] = str(int(requirementlist[0]) - 1)
-            if int(requirementlist[0]) > 0:
-                DuplicatesNeeded[r[1].split("*")[0]] = ",".join(requirementlist)
-            else:
+                DuplicatesNeeded[dupekey].remainingcoursenumber -= 1
+            
+            DuplicatesNeeded[dupekey].fufilledcourses.append([keys,c])
+            
+            if DuplicatesNeeded[dupekey].remainingcoursenumber <= 0:
                 DuplicateCheck = True
-                del DuplicatesNeeded[int(r[1].split("*")[0])]
+
+                sstring = MakeCompletedListString(dupekey,fullrequirements,DuplicatesNeeded[dupekey].fufilledcourse,DuplicatesNeeded[dupekey].credit)
+                completedrequirements.append(sstring)
+                del DuplicatesNeeded[dupekey]
             del DuplicateCourses[k]
     #print(DuplicatesNeeded)
     #print(DuplicateCourses)
     if len(DuplicatesNeeded) > 0:
         for requirements in DuplicatesNeeded.keys():
-            numbers = DuplicatesNeeded[requirements].split(",")
-            for h in DuplicateCoursesUnused.keys():
-                j = DuplicateCoursesUnused[h].split(",")
-                
-                #print(j)
-                for k in j:
-                    m = k.split("*")
-                    #print(m)
-                    if int(m[0]) == requirements:
-                        if len(m) > 1:
-                            #Deletes "loose" requirement (X part of "X/Y" where Y is a duplicate and X is either duplicate or not)
-                            backchange = newminor[requirements].split(".")
-                            split_backchange = backchange[1].split("*")
-                            j = 0
-                            while j < len(split_backchange):
-                                split_j = split_backchange[j].split("/")
-                                #print(split_j)
-                                i = 0
-                                while i < len(split_j):
-                                    if split_j[i] in m[1:]:
-                                        del split_j[i]
-                                    else:
-                                        i += 1
-                                if len(split_j) > 0:
-                                    split_backchange[j] = "/".join(split_j)
-                                else:
-                                    del split_backchange[j]
-                                j += 1
-                            newminor[requirements] = backchange[0] + "." + "*".join(split_backchange)
-
-                            #Appends "loose" requirement back to correct "X/Y" pair to maintain stability
-                            #print("End")
-                            #print(m)
-                            n = ""
-                            for i in range(1,len(m)):
-                                n += "/" + m[i]
-                            if numbers[1] == "True":
-                                search = h+n
-                                search = search.split("/")
-                                ma = 0
-                                cma = ""
-                                for i in search:
-                                    try:
-                                        if int(StudentCourseTableCopy[i].split(",")[0]) > ma:
-                                            ma = int(StudentCourseTableCopy[i].split(",")[0])
-                                            cma = i
-                                    except:
-                                        dummy = "dummy"
-                                if i != "":
-                                    n += " {currently fufilled by " + str(ma) + "-credit course " + cma + "}"
-                            #print(n)
-                        else:
-                            n = ""
-                        newminor[requirements] += "*" + h + n
-                        break
-                
-            if numbers[1] == "True":
-                cc = "credit"
-            else:
-                cc = "course"
-            if int(numbers[0]) > 1:
-                cc += "s"
             failedcount += 1
-            r = newminor[requirements].split(".")[1].split("*")
-            i = 0
-            while i < len(r):
-                if r[i] == "":
-                    del r[i]
+            if DuplicatesNeeded[requirements].field == "":
+                for h in DuplicateCoursesUnused.keys():
+                    j = DuplicateCoursesUnused[h].split(",")
+                    
+                    #print(j)
+                    for k in j:
+                        m = k.split("*")
+                        #print(m)
+                        if int(m[0]) == requirements:
+                            if len(m) > 1:
+                                #Deletes "loose" requirement (X part of "X/Y" where Y is a duplicate and X is either duplicate or not)
+                                backchange = newminor[requirements].split(".")
+                                split_backchange = backchange[1].split("*")
+                                j = 0
+                                while j < len(split_backchange):
+                                    split_j = split_backchange[j].split("/")
+                                    #print(split_j)
+                                    i = 0
+                                    while i < len(split_j):
+                                        if split_j[i] in m[1:]:
+                                            del split_j[i]
+                                        else:
+                                            i += 1
+                                    if len(split_j) > 0:
+                                        split_backchange[j] = "/".join(split_j)
+                                    else:
+                                        del split_backchange[j]
+                                    j += 1
+                                newminor[requirements] = backchange[0] + "." + "*".join(split_backchange)
+
+                                #Appends "loose" requirement back to correct "X/Y" pair to maintain stability
+                                #print("End")
+                                #print(m)
+                                n = ""
+                                for i in range(1,len(m)):
+                                    n += "/" + m[i]
+                                if DuplicatesNeeded[requirements].credit == True:
+                                    search = h+n
+                                    search = search.split("/")
+                                    ma = 0
+                                    cma = ""
+                                    for i in search:
+                                        try:
+                                            if int(StudentCourseTableCopy[i].split(",")[0]) > ma:
+                                                ma = int(StudentCourseTableCopy[i].split(",")[0])
+                                                cma = i
+                                        except:
+                                            dummy = "dummy"
+                                    if i != "":
+                                        n += " {currently fufilled by " + str(ma) + "-credit course " + cma + "}"
+                                #print(n)
+                            else:
+                                n = ""
+                            newminor[requirements] += "*" + h + n
+                            break
+                    
+                if DuplicatesNeeded[requirements].credit == True:
+                    cc = "credit"
                 else:
-                    i += 1
-            newminor[requirements] = newminor[requirements].split(".")[0] + "." + "*".join(r)
-            #print(newminor[requirements])
+                    cc = "course"
+                if DuplicatesNeeded[requirements].remainingcoursenumber > 1:
+                    cc += "s"
                 
-            #print(numbers[0])
-            #print(newminor)
-            #MinorRequirements.append(numbers[0] + " " + cc + " from (" + str(newminor[requirements].split("."))[1:-1] + ")")
-            MinorRequirements.append(numbers[0] + " " + cc + " from (" + str(str(newminor[requirements].split(".")[1]).split("*"))[1:-1] + ")")
-            
+                r = newminor[requirements].split(".")[1].split("*")
+                i = 0
+                while i < len(r):
+                    if r[i] == "":
+                        del r[i]
+                    else:
+                        i += 1
+                newminor[requirements] = newminor[requirements].split(".")[0] + "." + "*".join(r)
+                #print(newminor[requirements])
+                    
+                #print(numbers[0])
+                #print(newminor)
+                #MinorRequirements.append(numbers[0] + " " + cc + " from (" + str(newminor[requirements].split("."))[1:-1] + ")")
+                if len(DuplicatesNeeded[requirements].fufilledcourse) > 0:
+                    MinorRequirements.append(str(DuplicatesNeeded[requirements].remainingcoursenumber) + " " + cc + " from (" + str(str(newminor[requirements].split(".")[1]).split("*"))[1:-1] + "): Partially Fulfilled by (" + MakeFailedListString(DuplicatesNeeded[requirements].fufilledcourse,DuplicatesNeeded[requirements].credit) + ")")
+                else:
+                    MinorRequirements.append(str(DuplicatesNeeded[requirements].remainingcoursenumber) + " " + cc + " from (" + str(str(newminor[requirements].split(".")[1]).split("*"))[1:-1] + ")")
+            else:
+                if len(DuplicatesNeeded[requirements].fufilledcourse) > 0:
+                    MinorRequirements.append(str(DuplicatesNeeded[requirements].remainingcoursenumber) + " credits from " + DuplicatesNeeded[requirements].field + " " + str(DuplicatesNeeded[requirements].level) + "-level classes or higher: Partially Fulfilled by (" + MakeFailedListString(DuplicatesNeeded[requirements].fufilledcourse,DuplicatesNeeded[requirements].credit) + ")")
+                else:
+                    MinorRequirements.append(str(DuplicatesNeeded[requirements].remainingcoursenumber) + " credits from " + DuplicatesNeeded[requirements].field + " " + str(DuplicatesNeeded[requirements].level) + "-level classes or higher")
             
             
             
