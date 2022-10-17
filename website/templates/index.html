@@ -15,17 +15,19 @@
 			crossorigin="anonymous"
 		/>
 		<title>PSU Minor Tracker</title>
+		<img src = "https://upload.wikimedia.org/wikipedia/en/thumb/a/ac/Penn_State_Abington_logo.svg/1200px-Penn_State_Abington_logo.svg.png" width = "300" height = "100">
 	</head>
-	<body>
-		<img src = "https://www.psu.edu/PSU-mark-navy.jpg">
+	<h1><center>Minor and Certificate Tracker</center></h1>
+	<body style="background-color: cornflowerblue;">
 		<br>
-		<form action="/" method = "post"> <!-- May need to adjust action and method -->
-			<p>Please submit a copy of your transcript.</p>
+		<form action="/" method = "post" enctype=multipart/form-data> <!-- May need to adjust action and method -->
+			<center><p>Please submit a copy of your transcript.</p>
 			<br>
 			<input type="file" name="transcript_input" id = "transcript_input" accept="application/pdf, application/vnd.ms-excel">
 			<br>
-			<input type="submit" value="SUBMIT" id="submit"> <!-- May need to adjust value and id -->
+			<input type="submit" value="SUBMIT" id="submit"></center> <!-- May need to adjust value and id -->
 		</form>
+
 
 		<!-- Some extra style options below. Keep at bottom of body tag -->
 		<script
@@ -43,6 +45,16 @@
 			integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
 			crossorigin="anonymous"
 		></script>
+		<script>
+			function expand(id) {
+			  var x = document.getElementById(id);
+			  if (x.style.display === "none") {
+				x.style.display = "block";
+			  } else {
+				x.style.display = "none";
+			  }
+			}
+		</script>
 
 		<!-- this commented out block is for optional personalized javascripting. add index.js file to use
 		<script
