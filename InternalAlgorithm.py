@@ -206,11 +206,11 @@ def getFullfillmentData(input_transcript):
     Transcript = input_transcript
 
     #This is primarily for debugging.
-    StudentCourseTable = GetStudentCoursesDebug("Test.txt")
+    #StudentCourseTable = GetStudentCoursesDebug("Test.txt")
 
     d2Array = GetMinorCertificateRequirements("MinorCertificateRequirements.csv")
 
-    #StudentCourseTable = GetStudentCourses(Transcript)
+    StudentCourseTable = GetStudentCourses(Transcript)
 
     #Useful for debug of student/requirements reports
     print(d2Array)
