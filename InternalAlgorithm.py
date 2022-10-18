@@ -3,7 +3,7 @@
 #pip install PyMuPDF
 import fitz
 import copy
-import PyPDF2
+#import PyPDF2
 
 
 def GetMinorCertificateRequirements(filename):
@@ -29,10 +29,15 @@ def GetStudentCourses(filename):
     StudentDict = {}
     
     #Citation for extracting text from PDF file: https://stackoverflow.com/questions/34837707/how-to-extract-text-from-a-pdf-file/63518022#63518022
-    doc = PyPDF2.PdfFileReader(filename)
-    records = ""
-    for i in range (doc.numPages):
-        records += doc.pages[i].extract_text()
+    #doc = PyPDF2.PdfFileReader(filename)
+    #records = ""
+    #for i in range (doc.numPages):
+    #    records += doc.pages[i].extract_text()
+
+    with fitz.open(filename) as doc:
+        records = ""
+        for page in doc:
+            records += page.get_text()
     
     records = records.split("\n")
     #print(records)
@@ -40,7 +45,9 @@ def GetStudentCourses(filename):
         #print(records[i])
         #print(ord(records[i][0]))
         #print(ord(records[i][-1]))
-        
+        #print(records[i])
+        #print([ord(j) for j in records[i]])
+        #print(StudentDict)
         if ord(records[i][-1]) == 32 and ord(records[i+1][0]) == 32 and len(records[i]) > 1 and len(records[i+1]) > 1:
             try:
                 k = False
@@ -130,12 +137,17 @@ class Minor:
         return False
         
 class DuplicateRequirement:
-    def __init__(self,remainingcoursenumber,credit,field,fufilledcourse,level):
+    def __init__(self,remainingcoursenumber,credit,field,fufilledcourse,minlevel,maxlevel,excludecourses):
         self.remainingcoursenumber = remainingcoursenumber
         self.credit = credit
         self.field = field
         self.fufilledcourse = fufilledcourse
-        self.level = level
+        self.minlevel = minlevel
+        self.maxlevel = maxlevel
+        self.excludecourses = excludecourses
+
+    def __str__(self):
+        return str(self.remainingcoursenumber) + ", " + str(self.credit) + ", " + str(self.field) + ", " + str(self.fufilledcourse) + ", " + str(self.minlevel) + ", " + str(self.maxlevel) + ", " + str(self.excludecourses)
 
 
 
@@ -194,11 +206,11 @@ def getFullfillmentData(input_transcript):
     Transcript = input_transcript
 
     #This is primarily for debugging.
-    #StudentCourseTable = GetStudentCoursesDebug("Test.txt")
+    StudentCourseTable = GetStudentCoursesDebug("Test.txt")
 
     d2Array = GetMinorCertificateRequirements("MinorCertificateRequirements.csv")
 
-    StudentCourseTable = GetStudentCourses(Transcript)
+    #StudentCourseTable = GetStudentCourses(Transcript)
 
     #Useful for debug of student/requirements reports
     print(d2Array)
@@ -246,7 +258,17 @@ def getFullfillmentData(input_transcript):
                 fullrequirements.append(split_i[0] + " " + cc + " from (" + str(split_i[1].split("*"))[1:-1] + ")")
 
             elif len(split_i) == 3:
-                fullrequirements.append(split_i[2] + " credits from " + split_i[0] + " " + split_i[1] + "-level classes or higher")
+                excludecourses = split_i[1].split("*")
+                minlevel = excludecourses[0].split("-")[0]
+                if len(excludecourses[0].split("-")) > 1:
+                    maxlevel = excludecourses[0].split("-")[1]
+                else:
+                    maxlevel = "499"
+                del excludecourses[0]
+                fullrequirements.append(split_i[2] + " credits from " + split_i[0] + " " + minlevel + "-" + maxlevel + " classes")
+                if len(excludecourses) > 0:
+                    fullrequirements[-1] += " that are not (" + str([split_i[0] + " " + exclude for exclude in excludecourses])[1:-1] + ")"
+        #print(fullrequirements)
 
         #Tests whether minor/certificate has duplicate courses in "choose any X of Y" requirements, and if so puts them in a special duplicate course list
         for m in minor:
@@ -431,6 +453,7 @@ def getFullfillmentData(input_transcript):
         #print(newminor)
         #print(list(ChoiceCourses.keys()))
         #print(list(DuplicateCourses.keys()))
+            
         #Deletes all duplicate courses that the student does not have, as they are useless for the purposes of calculating whether a minor is elegible
         #Also makes a copy of the original duplicate course list that has all the unused courses.
         #This is so said unused courses can be retrieved for the purposes of failed requirement course calculation
@@ -462,8 +485,6 @@ def getFullfillmentData(input_transcript):
                     MinorRequirements.append(requirement)
                     
             #This case deals with minor/certificate requirements that require the student to take X courses from a given list Y.
-            #Note: This should only be triggered in certificates.  Triggering case 2 and case 3 in the same minor/certificate may cause double counting (working on fixing this).
-            #May or may not need to be fixed
             elif len(split_requirement) == 2:
                 
                 if split_requirement[0][0] == "(" and split_requirement[0][-1] == ")":
@@ -516,7 +537,7 @@ def getFullfillmentData(input_transcript):
                     else:
                         iterator += 1
                 if required_coursenumber > 0:
-                    DuplicatesNeeded[r] = DuplicateRequirement(required_coursenumber,credit,"",fufilledcourse,0)
+                    DuplicatesNeeded[r] = DuplicateRequirement(required_coursenumber,credit,"",fufilledcourse,1,499,[])
                 else:
                     sstring = str(fullrequirements[r-1]) + ": Fulfilled by ("
                     for i in fufilledcourse:
@@ -532,18 +553,29 @@ def getFullfillmentData(input_transcript):
                         
 
             #This case deals with minor/certificate requirements that require the student to have X credits in a given field Y.  
-            #Note: this should only occur in minors.  Triggering case 2 and case 3 in the same minor/certificate may cause double counting (working on fixing this).
             elif len(split_requirement) == 3:
                 field = split_requirement[0]
                 numcredits = int(split_requirement[2])
+                excludecourses = split_requirement[1].split("*")
+                #print(excludecourses)
+                mincourselevel = int(excludecourses[0].split("-")[0])
+                if len(excludecourses[0].split("-")) > 1:
+                    maxcourselevel = int(excludecourses[0].split("-")[1])
+                else:
+                    maxcourselevel = 499
+                del excludecourses[0]
                 #print(field)
                 try:
                     #Citation for extracting numbers from string: https://www.geeksforgeeks.org/python-extract-numbers-from-string/
-                    fieldcoursenumbers = [int(course) for course in StudentCourseTableCopy[field].split() if course.isdigit()]
+                    fieldcoursenumbers = [int(course) for course in StudentCourseTableCopy[field].split(",") if course.isdigit()]
+                    rawcourse = StudentCourseTableCopy[field].split(",")
+                    #print(fieldcoursenumbers)
+                    #print(StudentCourseTableCopy[field].split(","))
+                    #print(excludecourses)
                     for course in range(0,len(fieldcoursenumbers)):
                         if numcredits <= 0:
                             break
-                        if int(fieldcoursenumbers[course]) >= int(split_requirement[1]):
+                        if int(fieldcoursenumbers[course]) >= mincourselevel and int(fieldcoursenumbers[course]) <= maxcourselevel and rawcourse[course] not in excludecourses:
                             fieldcourses = str(field) + " " + str(fieldcoursenumbers[course])
                             tdata = StudentCourseTableCopy[fieldcourses].split(",")
                             i = 0
@@ -552,31 +584,38 @@ def getFullfillmentData(input_transcript):
                                 fufilledcourse.append([fieldcourses,int(tdata[i])])
                                 i += 1
                     if numcredits > 0:
-                        DuplicatesNeeded[r] = DuplicateRequirement(numcredits,True,field,fufilledcourse,int(split_requirement[1]))
+                        DuplicatesNeeded[r] = DuplicateRequirement(numcredits,True,field,fufilledcourse,mincourselevel,maxcourselevel,excludecourses)
+                        #print(DuplicatesNeeded[r])
                         #failedcount += 1
                         #MinorRequirements.append(str(numcredits) + " credits from " + field + " " + split_requirement[1] + "-level classes or higher")
                     else:
                         sstring = MakeCompletedListString(r,fullrequirements,fufilledcourse,True)
                         completedrequirements.append(sstring)
                 except Exception as e:
-                    DuplicatesNeeded[r] = DuplicateRequirement(numcredits,True,field,fufilledcourse,int(split_requirement[1]))
+                    DuplicatesNeeded[r] = DuplicateRequirement(numcredits,True,field,fufilledcourse,mincourselevel,maxcourselevel,excludecourses)
+                    #print(DuplicatesNeeded[r])
                     #failedcount += 1
                     #MinorRequirements.append(str(numcredits) + " credits from " + field + " " + split_requirement[1] + "-level classes or higher")
+                
 
         #print(name)
         #print(DuplicatesNeeded)
         #print(DuplicateCourses)
 
+        #All the duplicate courses already have their case 2 requirements assigned, but they still need the case 3 requirements assigned as well.
+        #This block of code makes sure that all duplicate courses can be applied to case 3 requirements, provided said duplicate courses are inside the min-max level and are not explicitly denied.
         for n in DuplicatesNeeded.keys():
             if DuplicatesNeeded[n].field == "":
                 continue
             for keys in DuplicateCourses.keys():
                 c = keys.split(" ")
-                if c[0] == DuplicatesNeeded[n].field and int(c[1]) >= DuplicatesNeeded[n].level:
+                if c[0] == DuplicatesNeeded[n].field and int(c[1]) >= DuplicatesNeeded[n].minlevel and int(c[1]) <= DuplicatesNeeded[n].maxlevel and c[1] not in DuplicatesNeeded[n].excludecourses:
                     DuplicateCourses[keys] += "," + n
                     
                 
-        
+        #for k in DuplicatesNeeded.keys():
+        #    print(DuplicatesNeeded
+
         DuplicateCheck = True
         while len(DuplicatesNeeded) > 0 and len(DuplicateCourses) > 0:
             #This absolute nonsense of a code block serves to (attempt to) solve the problem of placing the correct duplicate courses in the optimal course requirements such that the minor/certificate will be correctly verified as complete.
@@ -740,14 +779,16 @@ def getFullfillmentData(input_transcript):
                     #print(newminor)
                     #MinorRequirements.append(numbers[0] + " " + cc + " from (" + str(newminor[requirements].split("."))[1:-1] + ")")
                     if len(DuplicatesNeeded[requirements].fufilledcourse) > 0:
-                        MinorRequirements.append(str(DuplicatesNeeded[requirements].remainingcoursenumber) + " " + cc + " from (" + str(str(newminor[requirements].split(".")[1]).split("*"))[1:-1] + "): Partially Fulfilled by (" + MakeFailedListString(DuplicatesNeeded[requirements].fufilledcourse,DuplicatesNeeded[requirements].credit) + ")")
+                        MinorRequirements.append(str(DuplicatesNeeded[requirements].remainingcoursenumber) + " " + cc + " from (" + str(str(newminor[requirements].split(".")[1]).split("*"))[1:-1] + "): Partially Fulfilled by (" + MakeFailedListString(DuplicatesNeeded[requirements].fufilledcourse,DuplicatesNeeded[requirements].credit))
                     else:
                         MinorRequirements.append(str(DuplicatesNeeded[requirements].remainingcoursenumber) + " " + cc + " from (" + str(str(newminor[requirements].split(".")[1]).split("*"))[1:-1] + ")")
                 else:
+
+                    MinorRequirements.append(str(DuplicatesNeeded[requirements].remainingcoursenumber) + " credits from " + DuplicatesNeeded[requirements].field + " " + str(DuplicatesNeeded[requirements].minlevel) + "-" + str(DuplicatesNeeded[requirements].maxlevel) + " classes")
+                    if len(DuplicatesNeeded[requirements].excludecourses) > 0:
+                        MinorRequirements[-1] += " that are not (" + str([DuplicatesNeeded[requirements].field + " " + exclude for exclude in DuplicatesNeeded[requirements].excludecourses])[1:-1] + ")"
                     if len(DuplicatesNeeded[requirements].fufilledcourse) > 0:
-                        MinorRequirements.append(str(DuplicatesNeeded[requirements].remainingcoursenumber) + " credits from " + DuplicatesNeeded[requirements].field + " " + str(DuplicatesNeeded[requirements].level) + "-level classes or higher: Partially Fulfilled by (" + MakeFailedListString(DuplicatesNeeded[requirements].fufilledcourse,DuplicatesNeeded[requirements].credit) + ")")
-                    else:
-                        MinorRequirements.append(str(DuplicatesNeeded[requirements].remainingcoursenumber) + " credits from " + DuplicatesNeeded[requirements].field + " " + str(DuplicatesNeeded[requirements].level) + "-level classes or higher")
+                        MinorRequirements[-1] += ": Partially Fulfilled by (" + MakeFailedListString(DuplicatesNeeded[requirements].fufilledcourse,DuplicatesNeeded[requirements].credit)
                 
                 
                 
@@ -780,4 +821,4 @@ def getFullfillmentData(input_transcript):
     return MinorArray
         
 
-
+getFullfillmentData("SSR_TSRPT.pdf")
