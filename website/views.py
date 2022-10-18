@@ -2,10 +2,13 @@ from sysconfig import get_path
 from flask import Blueprint, render_template, Flask, flash, request, redirect, url_for
 from werkzeug.utils import secure_filename
 import PyPDF2
+import pathlib
 import os
 from InternalAlgorithm import *
 
-UPLOAD_FOLDER = "C:\\Users\\scott\\OneDrive\\Documents\\MinorProject\\website\\UPLOAD_FOLDER" #   <---- change depending on desired upload folder path
+
+print("Path:" + str(pathlib.Path().resolve()))
+UPLOAD_FOLDER = str(pathlib.Path().resolve()) + "\\website" #   <---- change depending on desired upload folder path
 ALLOWED_EXTENSIONS = {'pdf'}
 
 app = Flask(__name__)
@@ -38,21 +41,21 @@ def home():
         if file and allowed_file(file.filename):
             print("Processing...")
             filename = secure_filename(file.filename)
-            #file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))  <--- this would allow the pdf to be saved somewhere
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))  #<--- this would allow the pdf to be saved somewhere
             #file = open(data, 'rb')
             #fileReader = PyPDF2.PdfFileReader(file)
             #page = fileReader.pages[0]
             #print("PDF Text: ")
             #print(page.extract_text())
             #print("---END PDF---")
-            MinorArray = getFullfillmentData(file)
+            MinorArray = getFullfillmentData(UPLOAD_FOLDER+"/"+filename)
             newHtml = "<br><br>"
             #below is bulk of results code. looks ugly in one line right now. should fix later for readibility
             for i, eachMinor in enumerate(MinorArray):
                 newHtml += '<center><div><label for="file">'+eachMinor.name+' Progress:</label><br><label>'+ str(int(eachMinor.completion * 100)) + '%</label><progress id="file" value="' + str(int(eachMinor.completion * 100)) +'" max="100"></progress> <button onclick="expand('+ str(i) +')">Details</button><div id='+ str(i) +' style = "background-color:white; padding:50px 0; display:none"><p>Full Requirements: "' + str(list(eachMinor.fullrequirements)) +'</p><p>Completed Requirements: "' + str(list(eachMinor.completedrequirements)) +'</p><p>Remaining Requirements: "' + str(list(eachMinor.failedrequirements)) +'</p></div></div></center><br><br>'
 
 
-            
+        os.remove(UPLOAD_FOLDER+"/"+filename)   
         return (render_template("index.html") + newHtml)
     else:
         return (render_template("index.html"))

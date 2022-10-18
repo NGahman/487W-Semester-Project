@@ -29,10 +29,14 @@ def GetStudentCourses(filename):
     StudentDict = {}
     
     #Citation for extracting text from PDF file: https://stackoverflow.com/questions/34837707/how-to-extract-text-from-a-pdf-file/63518022#63518022
-    doc = PyPDF2.PdfFileReader(filename)
-    records = ""
-    for i in range (doc.numPages):
-        records += doc.pages[i].extract_text()
+    with fitz.open(filename) as doc:
+        records = ""
+        for page in doc:
+            records += page.get_text()
+
+    print("---------------------")
+    print(records)
+    print("---------------------")
     
     records = records.split("\n")
     #print(records)
@@ -204,6 +208,8 @@ def getFullfillmentData(input_transcript):
     print(d2Array)
     print()
     print(StudentCourseTable)
+
+    
 
     MinorArray = []
     #Note: For all student/minor requirements, it will *only* count the requirement as fufilled if the student course is identical to the one in the requirement.
