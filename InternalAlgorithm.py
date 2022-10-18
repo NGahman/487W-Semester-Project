@@ -821,4 +821,4 @@ def getFullfillmentData(input_transcript):
     return MinorArray
         
 
-getFullfillmentData("SSR_TSRPT.pdf")
+#getFullfillmentData("SSR_TSRPT.pdf")
