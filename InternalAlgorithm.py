@@ -29,6 +29,11 @@ def GetStudentCourses(filename):
     StudentDict = {}
     
     #Citation for extracting text from PDF file: https://stackoverflow.com/questions/34837707/how-to-extract-text-from-a-pdf-file/63518022#63518022
+    #doc = PyPDF2.PdfFileReader(filename)
+    #records = ""
+    #for i in range (doc.numPages):
+    #    records += doc.pages[i].extract_text()
+
     with fitz.open(filename) as doc:
         records = ""
         for page in doc:
@@ -44,7 +49,9 @@ def GetStudentCourses(filename):
         #print(records[i])
         #print(ord(records[i][0]))
         #print(ord(records[i][-1]))
-        
+        #print(records[i])
+        #print([ord(j) for j in records[i]])
+        #print(StudentDict)
         if ord(records[i][-1]) == 32 and ord(records[i+1][0]) == 32 and len(records[i]) > 1 and len(records[i+1]) > 1:
             try:
                 k = False
@@ -134,12 +141,17 @@ class Minor:
         return False
         
 class DuplicateRequirement:
-    def __init__(self,remainingcoursenumber,credit,field,fufilledcourse,level):
+    def __init__(self,remainingcoursenumber,credit,field,fufilledcourse,minlevel,maxlevel,excludecourses):
         self.remainingcoursenumber = remainingcoursenumber
         self.credit = credit
         self.field = field
         self.fufilledcourse = fufilledcourse
-        self.level = level
+        self.minlevel = minlevel
+        self.maxlevel = maxlevel
+        self.excludecourses = excludecourses
+
+    def __str__(self):
+        return str(self.remainingcoursenumber) + ", " + str(self.credit) + ", " + str(self.field) + ", " + str(self.fufilledcourse) + ", " + str(self.minlevel) + ", " + str(self.maxlevel) + ", " + str(self.excludecourses)
 
 
 
@@ -787,3 +799,4 @@ def getFullfillmentData(input_transcript):
         
 
 
+getFullfillmentData("SSR_TSRPT.pdf")
