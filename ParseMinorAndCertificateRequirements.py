@@ -11,7 +11,7 @@ class Minor:
 
 
 # following dictionaries are used later
-courseAbbreviations = {"sociology" : "SOC", "psychology" : "PSYCH"}
+courseAbbreviations = {"sociology": "SOC", "psychology": "PSYCH"}
 numbers = {'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
            'eleven': 11, 'twelve': 12}
 
@@ -29,6 +29,7 @@ numbers = {'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seve
 def parseSentence1(rows, rowModified3, i, minor: Minor):
     flag1 = False
     flag2 = False
+    exceptcourse = ''
 
     for i in range(0, len(rowModified3)):
         if rowModified3[i] == 'Select':
@@ -53,18 +54,20 @@ def parseSentence1(rows, rowModified3, i, minor: Minor):
             if 'range' in rowModified3:
                 level = rowModified3[i + 3]
                 flag2 = True
+        if rowModified3[i] == 'except':
+            exceptcourse = exceptcourse + "*" + rowModified3[i + 2]
 
     if flag1 == False and flag2 == False:
-        AdditionalClass1 = subject + ".100." + credits
+        AdditionalClass1 = subject + ".1-499" + exceptcourse + "." + credits
         minor.requirements.append(AdditionalClass1)
     elif flag1 == False and flag2 == True:
-        AdditionalClass1 = subject + "." + level + "." + credits
+        AdditionalClass1 = subject + "." + level + "-499." + credits
         minor.requirements.append(AdditionalClass1)
     elif flag1 == True and flag2 == True:
-        AdditionalClass1 = subject + ".100." + credits
+        AdditionalClass1 = subject + ".1-499." + credits
         minor.requirements.append(AdditionalClass1)
 
-        AdditionalClass2 = subject + "." + level + "." + credits2
+        AdditionalClass2 = subject + "." + level + "-499." + credits2
         minor.requirements.append(AdditionalClass2)
 
     return i + 1
@@ -166,6 +169,7 @@ def parseSentence2(rows, rowModified3, i, minor: Minor):
 
     minor.requirements.append(RequiredClasses)
     return k
+
 
 # Parse sentence of the following structure:
 # 'Select x credits of the following:'
@@ -316,10 +320,12 @@ def parseSentence4(rows, rowModified3, i, minor: Minor):
 
 
 # Parse sentence of the following structure:
-# 'Select x credits from the y z-range'
+# 'Select x credits from any y course except z'
+# 'Select x credits from the y z-x-range'
 # for an example, see: ANTH minor
 def parseSentence5(rows, rowModified3, i, minor: Minor):
     flag1 = False
+    exceptCourseNumber = ''
 
     for i in range(0, len(rowModified3)):
         if rowModified3[i] == 'Select':
@@ -327,14 +333,18 @@ def parseSentence5(rows, rowModified3, i, minor: Minor):
         if rowModified3[i].startswith('from'):
             subject = rowModified3[i + 2]
             if 'range' in rowModified3:
-                level = rowModified3[i + 3]
+                lowerLevel = rowModified3[i + 3]
+                upperLevel = rowModified3[i + 4]
                 flag1 = True
+        if rowModified3[i] == 'except':
+            exceptCourse = str(rows[i]).split('"')[13]
+            exceptCourseNumber = "*" + exceptCourse.split()[1]
 
     if flag1 == False:
-        AdditionalClass1 = subject + ".100." + credits
+        AdditionalClass1 = subject + ".1-499" + exceptCourseNumber + "." + credits
         minor.requirements.append(AdditionalClass1)
     elif flag1 == True:
-        AdditionalClass1 = subject + "." + level + "." + credits
+        AdditionalClass1 = subject + "." + lowerLevel + "-" + upperLevel + "." + credits
         minor.requirements.append(AdditionalClass1)
 
     return i + 1
@@ -405,6 +415,7 @@ def parseRequirements(minor: Minor):
                 i = k
 
             # Parse sentence of the following structure:
+            # 'Select x credits from any y course except z'
             # 'Select x credits from the y z-range'
             # for an example, see: ANTH minor
             elif ('Select' in rowModified3) and ('from' in rowModified3):
