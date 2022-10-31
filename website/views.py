@@ -7,8 +7,7 @@ import os
 from InternalAlgorithm import *
 
 
-print("Path:" + str(pathlib.Path().resolve()))
-UPLOAD_FOLDER = str(pathlib.Path().resolve()) + "\\website" #   <---- change depending on desired upload folder path
+UPLOAD_FOLDER = str(pathlib.Path().resolve()) + "\\website" #   <---- saves to website folder wherever this file is a saved
 ALLOWED_EXTENSIONS = {'pdf'}
 
 app = Flask(__name__)
