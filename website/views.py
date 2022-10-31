@@ -42,12 +42,6 @@ def home():
             print("Processing...")
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))  #<--- this would allow the pdf to be saved somewhere
-            #file = open(data, 'rb')
-            #fileReader = PyPDF2.PdfFileReader(file)
-            #page = fileReader.pages[0]
-            #print("PDF Text: ")
-            #print(page.extract_text())
-            #print("---END PDF---")
             MinorArray = getFullfillmentData(UPLOAD_FOLDER+"/"+filename)
             newHtml = "<br><br>"
             #below is bulk of results code. looks ugly in one line right now. should fix later for readibility
