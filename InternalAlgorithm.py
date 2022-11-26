@@ -688,7 +688,7 @@ def getFullfillmentData(input_transcript):
                 else:
                     DuplicatesNeeded[dupekey].remainingcoursenumber -= 1
                 
-                DuplicatesNeeded[dupekey].fufilledcourses.append([keys,c])
+                DuplicatesNeeded[dupekey].fufilledcourse.append([keys,c])
                 
                 if DuplicatesNeeded[dupekey].remainingcoursenumber <= 0:
                     DuplicateCheck = True
