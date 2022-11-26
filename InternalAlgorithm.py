@@ -612,9 +612,14 @@ def getFullfillmentData(input_transcript):
                 if c[0] == DuplicatesNeeded[n].field and int(c[1]) >= DuplicatesNeeded[n].minlevel and int(c[1]) <= DuplicatesNeeded[n].maxlevel and c[1] not in DuplicatesNeeded[n].excludecourses:
                     DuplicateCourses[keys] += "," + n
                     
-                
+        #print("Duplicate Courses Values:")
+        #for k in DuplicateCourses.keys():
+        #    print(k)
+        #    print(DuplicateCourses[k])
+
+        #print("DuplicatesNeeded Keys:")
         #for k in DuplicatesNeeded.keys():
-        #    print(DuplicatesNeeded
+        #    print(k)
 
         DuplicateCheck = True
         while len(DuplicatesNeeded) > 0 and len(DuplicateCourses) > 0:
@@ -688,7 +693,7 @@ def getFullfillmentData(input_transcript):
                 else:
                     DuplicatesNeeded[dupekey].remainingcoursenumber -= 1
                 
-                DuplicatesNeeded[dupekey].fufilledcourses.append([keys,c])
+                DuplicatesNeeded[dupekey].fufilledcourse.append([keys,c])
                 
                 if DuplicatesNeeded[dupekey].remainingcoursenumber <= 0:
                     DuplicateCheck = True
