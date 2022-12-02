@@ -11,3 +11,4 @@ Library dependencies can be solved by opening cmd line before running the progra
 pip install fitz
 pip install PyMuPDF==1.19.0
 pip install flask
+pip install beautifulsoup4
